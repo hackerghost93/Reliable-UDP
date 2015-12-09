@@ -2,45 +2,51 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.net.UnknownHostException;
+import java.util.ArrayList;
+import java.util.Scanner;
 
 
 public class ServerMain {
-	static int port = 7891 ; 
-	int seqnum = 0 ;
-	static DatagramSocket socket ;
-	static DatagramPacket packets[] = null ;
-    static byte[] data = null ;
-	public static byte[] ReadFile() throws IOException
-	{
-		byte[] data = null;
-		Path path = Paths.get("output.txt");
-		data = Files.readAllBytes(path);
-		return data ;
-	}
+	public static int port = 7891 ;
+	public static int window ;
+	public static DatagramSocket socket ;
+    public static boolean acked[] ;
+    public static int pointerNext ;
+    static ArrayList<DatagramPacket> packets ;
+    static byte[] data ;
+    int lastACK  ;
+    
 	
-	public DatagramPacket getPacket(byte[] data)
+	public static void CreatePackets(byte[] data) throws UnknownHostException
 	{
-		if(seqnum == data.length)
-			return null ;
-		
-		byte[] buffer = new byte[512];
-		for(int i = seqnum ; i < data.length || (seqnum%512==0);i++)
-		{
-			
-		}
-		
-		DatagramPacket packet = new DatagramPacket()
+		// first byte = sequence number 
+		// sequence number increment and % 2window+1
+		// write code here
+		// buffer to put in the data of each packet
+		// you need to loop here and push into the list
+		byte[] BUFFER = new byte[512];
+		// for local host IP
+		InetAddress ip = InetAddress.getByName("127.0.0.1");
+		// create packet 
+		DatagramPacket packet= new DatagramPacket(BUFFER , BUFFER.length,ip,port);
+	}	
+	
+	public static void SendPacket(int physicalNumber) throws IOException
+	{
+		// where the probability of error can occur
+		socket.send(packets.get(physicalNumber));
 	}
 	
 	
 	
 	public static void main(String[] args) throws IOException {
 		socket = new DatagramSocket(port);
-		InetAddress ip = InetAddress.getByName("127.0.0.1");
-		packet = new DatagramPacket(BUFFER , BUFFER.length,ip,port);
+		System.out.println("Enter Window Size");
+		Scanner input = new Scanner(System.in);		
+		window = input.nextInt();
+		acked  = new boolean[2*window+1];
+		input.close();
 	}
 	
 }
