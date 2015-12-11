@@ -2,15 +2,19 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 
 public class Timer implements Runnable {
-	static int timeout;
+	static int timeout ;
 	DatagramPacket packet;
 	int seqnum;
 	int physicalNumber;
 
+	static
+	{
+		timeout = 50;
+	}
 	Timer(DatagramPacket packet, int seqnum, int physicalNumber) {
 		this.packet = packet;
 		this.seqnum = seqnum;
-		// the real value of the packet in the array
+		// real value of fileIndex
 		this.physicalNumber = physicalNumber;
 	}
 
@@ -19,13 +23,13 @@ public class Timer implements Runnable {
 			try {
 				Thread.sleep(timeout);
 				if (!ServerMain.acked[seqnum]) {
+					System.out.println("retransmit " + physicalNumber);
 					ServerMain.SendPacket(physicalNumber);
 				} else
 					break;
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			} catch (IOException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 		}

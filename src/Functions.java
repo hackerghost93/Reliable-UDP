@@ -6,13 +6,15 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 
 public abstract class Functions {
-	public static int getSeqnum(DatagramPacket packet) {
-		// get the first byte of sequence number
-		return 0;
+	public static byte getSeqnum(DatagramPacket packet) {
+		byte[] arr = packet.getData();
+		// dih msh sha3'ala leh ?
+		System.out.println("getting seq num " +arr[0]);
+		return arr[0];
 	}
 
 	public static void WriteFile(byte[] data) throws IOException {
-		FileOutputStream output = new FileOutputStream("out.txt");
+		FileOutputStream output = new FileOutputStream("out.txt",true);
 		output.write(data);
 		output.close();
 	}
