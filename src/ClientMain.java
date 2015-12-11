@@ -6,7 +6,7 @@ import java.util.Scanner;
 
 public class ClientMain {
 
-	public final static int port = 7777;
+	public final static int port = 5500;
 	public static DatagramSocket socket;
 	static byte awaiting;
 	static byte window;
@@ -20,10 +20,10 @@ public class ClientMain {
 				ServerMain.port);
 		socket.send(packet);
 	}
-	
-	private static byte IncSeq(byte seqnum)
-	{
-		return (byte)((++seqnum)%(2 * window +1));
+
+	private static void IncSeq() {
+		++awaiting;
+		awaiting %= window << 1 | 1;
 	}
 
 	public static void main(String[] args) throws IOException {
@@ -33,29 +33,27 @@ public class ClientMain {
 		input.close();
 		packetsReceived = new DatagramPacket[2 * window + 1];
 		socket = new DatagramSocket(port);
-		byte[] buf = new byte[600];
+		byte[] buf = new byte[512];
 		DatagramPacket packet = new DatagramPacket(buf, buf.length);
 		while (packet.getData().length != 0) {
 			socket.receive(packet);
 			byte seqnum = Functions.getSeqnum(packet);
-			System.out.println("received " + seqnum);
 			if (packetsReceived[seqnum] != null) {
 				ACK(seqnum);
 			}
 			if (seqnum == awaiting) {
-				// ADD TO BUFFER 
+				// ADD TO BUFFER
 				Functions.WriteFile(packet.getData());
 				ACK(seqnum);
-				packetsReceived[seqnum] = null;
-				awaiting = IncSeq(awaiting);
 				while (packetsReceived[awaiting] != null) {
 					// ADD TO BUFFER
 					Functions.WriteFile(packetsReceived[awaiting].getData());
 					packetsReceived[awaiting] = null;
-					awaiting = IncSeq(awaiting);
+					IncSeq();
 				}
 			} else {
-				packetsReceived[seqnum] = packet;
+				byte[] data = packet.getData();
+				packetsReceived[seqnum] = new DatagramPacket(data, data.length);
 				ACK(seqnum);
 			}
 		}

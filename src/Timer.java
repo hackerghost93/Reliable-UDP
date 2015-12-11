@@ -18,7 +18,7 @@ public class Timer implements Runnable {
 		this.physicalNumber = physicalNumber;
 	}
 
-	public void run() {
+	public synchronized void run() {
 		while (true) {
 			try {
 				Thread.sleep(timeout);
