@@ -7,7 +7,7 @@ import java.util.Arrays;
 import java.util.Scanner;
 
 public class ServerMain {
-	public static int port = 5500;
+	public static int port = 7900;
 	public static int window;
 	public static DatagramSocket socket;
 	public static boolean acked[];
@@ -33,7 +33,7 @@ public class ServerMain {
 				buffer[sz++] = data[i];
 			if (sz != 512)
 				--i;
-			packets.add(new DatagramPacket(buffer, buffer.length, ip, port));
+			packets.add(new DatagramPacket(buffer, buffer.length, ip, ClientMain.port));
 		}
 	}
 
@@ -58,8 +58,9 @@ public class ServerMain {
 		acked = new boolean[window << 1 | 1];
 		for (fileIndex = 0; fileIndex < window && fileIndex < packets.size(); 
 						++fileIndex) {
+			System.out.println("send " + fileIndex);
 			socket.send(packets.get(fileIndex));
-			new Timer(packets.get(fileIndex), seqnum, fileIndex).run();
+	     	new Thread(new Timer(packets.get(fileIndex), seqnum, fileIndex)).start();
 			IncSeq();
 		}
 		byte[] BUFFER = new byte[1];

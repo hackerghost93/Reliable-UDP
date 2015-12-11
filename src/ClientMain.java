@@ -6,7 +6,7 @@ import java.util.Scanner;
 
 public class ClientMain {
 
-	public final static int port = 5500;
+	public final static int port = 7666;
 	public static DatagramSocket socket;
 	static byte awaiting;
 	static byte window;
@@ -27,17 +27,19 @@ public class ClientMain {
 	}
 
 	public static void main(String[] args) throws IOException {
+		socket = new DatagramSocket(port);
 		System.out.println("Enter the window size client");
 		Scanner input = new Scanner(System.in);
 		window = input.nextByte();
 		input.close();
 		packetsReceived = new DatagramPacket[2 * window + 1];
-		socket = new DatagramSocket(port);
 		byte[] buf = new byte[512];
 		DatagramPacket packet = new DatagramPacket(buf, buf.length);
 		while (packet.getData().length != 0) {
+			System.out.println("awaiting receive");
 			socket.receive(packet);
 			byte seqnum = Functions.getSeqnum(packet);
+			System.out.println("received "+seqnum);
 			if (packetsReceived[seqnum] != null) {
 				ACK(seqnum);
 			}

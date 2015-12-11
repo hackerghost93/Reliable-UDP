@@ -19,7 +19,7 @@ public abstract class Functions {
 
 	public static byte[] ReadFile() throws IOException {
 		byte[] data;
-		Path path = Paths.get("myfile");
+		Path path = Paths.get("output.txt");
 		data = Files.readAllBytes(path);
 		return data;
 	}
