@@ -2,6 +2,7 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.nio.ByteBuffer;
 import java.util.Scanner;
 
 public class ClientMain {
@@ -11,10 +12,13 @@ public class ClientMain {
 	static byte awaiting;
 	static byte window;
 	static DatagramPacket[] packetsReceived;
+	static ByteBuffer bufferR = ByteBuffer.allocate(570);
 
 	public static void ACK(byte seqnum) throws IOException {
 		byte[] BUFFER = new byte[1];
-		BUFFER[0] = seqnum;
+		final ByteBuffer buf = ByteBuffer.allocate(1);
+		buf.put(seqnum);
+		BUFFER[0] = buf.get(0);
 		InetAddress ip = InetAddress.getByName("127.0.0.1");
 		DatagramPacket packet = new DatagramPacket(BUFFER, BUFFER.length, ip,
 				ServerMain.port);
@@ -37,6 +41,7 @@ public class ClientMain {
 		DatagramPacket packet = new DatagramPacket(buf, buf.length);
 		while (packet.getData().length != 0) {
 			System.out.println("awaiting receive");
+			bufferR.clear();
 			socket.receive(packet);
 			byte seqnum = Functions.getSeqnum(packet);
 			System.out.println("received "+seqnum);
@@ -45,17 +50,19 @@ public class ClientMain {
 			}
 			if (seqnum == awaiting) {
 				// ADD TO BUFFER
-				Functions.WriteFile(packet.getData());
+				bufferR.put(packet.getData());
+				Functions.WriteFile(bufferR.array());
 				ACK(seqnum);
 				while (packetsReceived[awaiting] != null) {
 					// ADD TO BUFFER
-					Functions.WriteFile(packetsReceived[awaiting].getData());
+					bufferR.put(packetsReceived[awaiting].getData());
+					Functions.WriteFile(bufferR.array());
 					packetsReceived[awaiting] = null;
 					IncSeq();
 				}
 			} else {
-				byte[] data = packet.getData();
-				packetsReceived[seqnum] = new DatagramPacket(data, data.length);
+				Functions.WriteFile(packet.getData());
+				packetsReceived[seqnum] = packet ;
 				ACK(seqnum);
 			}
 		}
