@@ -20,6 +20,7 @@ public class ServerMain {
 	private static int seqnum = 0;
 	private static int fileIndex = 0;
 
+	
 	private static final double probability = 0.2;
 	
 	public static void CreatePackets() throws IOException {
@@ -48,7 +49,7 @@ public class ServerMain {
 		if(num > probability) {
 			socket.send(packets.get(physicalNumber));
 			System.out.println("send packet " + 
-			packets.get(physicalNumber).getData()[0]);
+					packets.get(physicalNumber).getData()[0]);
 		}
 	}
 

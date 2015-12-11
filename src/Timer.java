@@ -2,7 +2,7 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 
 public class Timer implements Runnable {
-	static final int timeout = 5000;
+	static final int timeout = 10000;
 	DatagramPacket packet;
 	int seqnum;
 	int physicalNumber;
@@ -14,12 +14,11 @@ public class Timer implements Runnable {
 		this.physicalNumber = physicalNumber;
 	}
 
-	public synchronized void run() {
+	public void run() {
 		while (true) {
 			try {
 				Thread.sleep(timeout);
 				if (!ServerMain.acked[seqnum]) {
-					System.out.println("retransmit " + physicalNumber);
 					ServerMain.SendPacket(physicalNumber);
 				} else
 					break;
