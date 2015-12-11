@@ -20,33 +20,36 @@ public class ServerMain {
 	private static int seqnum = 0;
 	private static int fileIndex = 0;
 
+	private static final double probability = 0.2;
+	
 	public static void CreatePackets() throws IOException {
 		packets = new ArrayList<DatagramPacket>();
 		byte[] data = Functions.ReadFile();
 		final ByteBuffer buf = ByteBuffer.allocate(570);
 		InetAddress ip = InetAddress.getByName("127.0.0.1");
-		byte[] buffer = new byte[512];
 		byte sequ = 0;
-		for (int i = 0; i < data.length; ++i) {
-			Arrays.fill(buffer, (byte) 0);
-			buf.clear();
-			buf.put(sequ);
-			buffer[0]=buf.get();
+		for (int i = 0; i < data.length;) {
+			byte[] buffer = new byte[512];
+			buffer[0] = sequ;
 			sequ++;
 			sequ %= window << 1 | 1;
 			int sz = 1;
 			for (; sz < 512 && i < data.length; ++i,sz++)
-				buf.put(data[i]);
-			if (sz != 512)
-				--i;
-			packets.add(new DatagramPacket(buf.array(), buf.position(), ip, ClientMain.port));
+				buffer[sz] = data[i];
+			packets.add(new DatagramPacket(buffer, buffer.length, ip, ClientMain.port));
+			
 		}
 	}
 
 	public synchronized static void SendPacket(int physicalNumber)
 			throws IOException {
 		// where the probability of error can occur
-		socket.send(packets.get(physicalNumber));
+		double num = Math.random();
+		if(num > probability) {
+			socket.send(packets.get(physicalNumber));
+			System.out.println("send packet " + 
+			packets.get(physicalNumber).getData()[0]);
+		}
 	}
 
 	private static void IncSeq() {
@@ -65,9 +68,8 @@ public class ServerMain {
 		timers = new Thread[window << 1 | 1];
 		for (fileIndex = 0; fileIndex < window && fileIndex < packets.size(); 
 						++fileIndex) {
-			System.out.println("send " + fileIndex);
-			socket.send(packets.get(fileIndex));
-	     	timers[seqnum]=new Thread(new Timer(packets.get(fileIndex), seqnum, fileIndex));
+			SendPacket(fileIndex);
+			timers[seqnum]=new Thread(new Timer(packets.get(fileIndex), seqnum, fileIndex));
 	     	timers[seqnum].start();
 			IncSeq();
 		}
@@ -81,6 +83,7 @@ public class ServerMain {
 			{
 				acked[num] = true;
 				timers[num].interrupt();
+				timers[num].join();
 			}
 			else {
 				System.out.println("Duplicate Ack " + num);
@@ -88,10 +91,7 @@ public class ServerMain {
 			}
 			if (num == waitACK) {
 				while (acked[waitACK]) {
-					socket.send(packets.get(fileIndex));
-					System.out.println("send " + fileIndex);
-					timers[waitACK].interrupt();
-					timers[waitACK].join();
+					SendPacket(fileIndex);
 					acked[waitACK] = false;
 					timers[seqnum] = 
 							new Thread(new Timer(packets.get(fileIndex), seqnum, fileIndex));
@@ -105,10 +105,6 @@ public class ServerMain {
 		}
 		socket.close();
 		// The last part when to send the EOF
-		for (int i = 0; i < packets.size(); i++) {
-			byte arr[] = packets.get(i).getData();
-			System.out.println(arr[0]);
-		}
 	}
 
 }

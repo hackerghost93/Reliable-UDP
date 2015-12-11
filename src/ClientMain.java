@@ -41,28 +41,22 @@ public class ClientMain {
 		DatagramPacket packet = new DatagramPacket(buf, buf.length);
 		while (packet.getData().length != 0) {
 			System.out.println("awaiting receive");
-			bufferR.clear();
 			socket.receive(packet);
 			byte seqnum = Functions.getSeqnum(packet);
 			System.out.println("received "+seqnum);
-			if (packetsReceived[seqnum] != null) {
-				ACK(seqnum);
-			}
 			if (seqnum == awaiting) {
-				// ADD TO BUFFER
-				bufferR.put(packet.getData());
-				Functions.WriteFile(bufferR.array());
 				ACK(seqnum);
+				packetsReceived[awaiting] = packet;
 				while (packetsReceived[awaiting] != null) {
 					// ADD TO BUFFER
-					bufferR.put(packetsReceived[awaiting].getData());
-					Functions.WriteFile(bufferR.array());
+					byte[] wr = packetsReceived[awaiting].getData();
+					Functions.WriteFile(wr);
 					packetsReceived[awaiting] = null;
 					IncSeq();
 				}
 			} else {
-				Functions.WriteFile(packet.getData());
-				packetsReceived[seqnum] = packet ;
+				packetsReceived[seqnum] = new DatagramPacket(packet.getData()
+						, packet.getLength(), packet.getAddress(), packet.getPort()) ;
 				ACK(seqnum);
 			}
 		}

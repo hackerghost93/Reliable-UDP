@@ -2,15 +2,11 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 
 public class Timer implements Runnable {
-	static int timeout ;
+	static final int timeout = 5000;
 	DatagramPacket packet;
 	int seqnum;
 	int physicalNumber;
 
-	static
-	{
-		timeout = 50;
-	}
 	Timer(DatagramPacket packet, int seqnum, int physicalNumber) {
 		this.packet = packet;
 		this.seqnum = seqnum;
@@ -28,9 +24,7 @@ public class Timer implements Runnable {
 				} else
 					break;
 			} catch (InterruptedException e) {
-				e.printStackTrace();
 			} catch (IOException e) {
-				e.printStackTrace();
 			}
 		}
 	}
