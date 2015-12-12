@@ -9,7 +9,9 @@ import java.util.Scanner;
 
 public class ClientMain {
 
-	public final static int port = 7666;
+	public static int serverPort;
+	public static int clientPort;
+	
 	public static DatagramSocket socket;
 	static byte awaiting;
 	static byte window;
@@ -19,19 +21,21 @@ public class ClientMain {
 	static ArrayList<DatagramPacket> ls;
 
 	public static int MOD;
+	
+	public static InetAddress ip;
+	public static double probability;
 
 	public static void ACK(byte seqnum) throws IOException {
 		byte[] BUFFER = new byte[1];
 		final ByteBuffer buf = ByteBuffer.allocate(1);
 		buf.put(seqnum);
 		BUFFER[0] = buf.get(0);
-		InetAddress ip = InetAddress.getByName("127.0.0.1");
 		DatagramPacket packet = new DatagramPacket(BUFFER, BUFFER.length, ip,
-				ServerMain.port);
+				serverPort);
 		double num = Math.random();
-		 if(num > ServerMain.probability) {
-		socket.send(packet);
-		System.out.println("Sending ack for " + seqnum);
+		 if(num > probability) {
+			 socket.send(packet);
+			System.out.println("Sending ack for " + seqnum);
 		 }
 	}
 
@@ -41,13 +45,15 @@ public class ClientMain {
 	}
 
 	public static void main(String[] args) throws IOException {
+		System.out.println("\t\tWelcome to Client\n\n");
+		if(!Functions.initClient()) {
+			System.out.println("\n\n\t looks like your config file is " + 
+								"not formated as we expect");
+			return;
+		}
 		FileOutputStream output = new FileOutputStream("out.txt", false);
-		socket = new DatagramSocket(port);
-		System.out.println("Enter the window size client");
-		Scanner input = new Scanner(System.in);
-		window = input.nextByte();
+		socket = new DatagramSocket(clientPort);
 		MOD = 3 * window;
-		input.close();
 		packetsReceived = new DatagramPacket[MOD];
 		while (true) {
 			System.out.println("awaiting receive " + awaiting);

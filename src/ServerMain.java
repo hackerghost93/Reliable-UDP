@@ -6,7 +6,7 @@ import java.util.ArrayList;
 import java.util.Scanner;
 
 public class ServerMain {
-	public static int port = 7900;
+	
 	public static int window;
 	public static DatagramSocket socket;
 	public static boolean acked[];
@@ -20,7 +20,10 @@ public class ServerMain {
 
 	public static int MOD;
 
-	public static final double probability = 0.2;
+	public static double probability;
+	
+	public static int serverPort;
+	public static int clientPort;
 
 	public static void CreatePackets() throws IOException {
 		packets = new ArrayList<DatagramPacket>();
@@ -36,7 +39,7 @@ public class ServerMain {
 			for (; sz < 512 && i < data.length; ++i, sz++)
 				buffer[sz] = data[i];
 			packets.add(new DatagramPacket(buffer, buffer.length, ip,
-					ClientMain.port));
+					clientPort));
 		}
 	}
 
@@ -58,13 +61,15 @@ public class ServerMain {
 
 	public static void main(String[] args) throws IOException,
 			InterruptedException {
-		System.out.println("Enter Window Size");
-		Scanner input = new Scanner(System.in);
-		window = input.nextInt();
+		System.out.println("\t\tWelcome to Client\n\n");
+		if(!Functions.initServer()) {
+			System.out.println("\n\n\t looks like your config file is " + 
+								"not formated as we expect");
+			return;
+		}
 		MOD = 3 * window;
 		CreatePackets();
-		input.close();
-		socket = new DatagramSocket(port);
+		socket = new DatagramSocket(serverPort);
 		acked = new boolean[MOD];
 		timers = new Thread[MOD];
 		for(fileIndex = 0; fileIndex < window && fileIndex < packets.size();
