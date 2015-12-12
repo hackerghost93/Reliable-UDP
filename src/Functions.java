@@ -11,8 +11,8 @@ public abstract class Functions {
 	}
 
 	public static void WriteFile(byte[] data) throws IOException {
-		FileOutputStream output = new FileOutputStream("out.txt",true);
-		for(int i = 1 ; i < data.length && data[i] != 0 ; ++i)
+		FileOutputStream output = new FileOutputStream("out.txt", true);
+		for (int i = 1; i < data.length && data[i] != 0; ++i)
 			output.write(data[i]);
 		output.close();
 		data = null;
