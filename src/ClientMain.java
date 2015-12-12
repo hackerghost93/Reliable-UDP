@@ -20,7 +20,7 @@ public class ClientMain {
 
 	public static int MOD;
 
-	public static boolean ACK(byte seqnum) throws IOException {
+	public static void ACK(byte seqnum) throws IOException {
 		byte[] BUFFER = new byte[1];
 		final ByteBuffer buf = ByteBuffer.allocate(1);
 		buf.put(seqnum);
@@ -30,21 +30,18 @@ public class ClientMain {
 				ServerMain.port);
 		double num = Math.random();
 		 if(num > ServerMain.probability) {
-			socket.send(packet);
-			System.out.println("Sending ack for " + seqnum);
-			return true;
+		socket.send(packet);
+		System.out.println("Sending ack for " + seqnum);
 		 }
-		 System.out.println("Drop Ack for " + seqnum);
-		 return false;
 	}
 
 	private static void IncSeq() {
 		++awaiting;
 		awaiting %= MOD;
 	}
+
 	public static void main(String[] args) throws IOException {
 		FileOutputStream output = new FileOutputStream("out.txt", false);
-		
 		socket = new DatagramSocket(port);
 		System.out.println("Enter the window size client");
 		Scanner input = new Scanner(System.in);
@@ -63,27 +60,28 @@ public class ClientMain {
 				packetsReceived[awaiting] = new DatagramPacket(
 						packet.getData(), packet.getLength(),
 						packet.getAddress(), packet.getPort());
+				ACK(awaiting);
 				for (int i = 0; i < window && packetsReceived[awaiting] != null
 												; ++i) {
-					// ADD TO BUFFER
-					byte[] wr = packetsReceived[awaiting].getData().clone();
+					byte[] wr = packetsReceived[awaiting].getData();
 					packetsReceived[awaiting] = null;
 					System.out.println("sequ num = " + wr[0]);
-					if(ACK(awaiting) || i > 0) {
-						Functions.WriteFile(wr);
-						IncSeq();
-					} else break;
+					Functions.WriteFile(wr);
+					//ACK(awaiting);
+					IncSeq();
 				}
 			} else if(seqnum > awaiting
 					&& seqnum < (awaiting + window) % (MOD)) {
-				if(ACK(seqnum)) {
-					if (packetsReceived[seqnum] == null) {
-						packetsReceived[seqnum] = new DatagramPacket(
-								packet.getData(), packet.getLength(),
-								packet.getAddress(), packet.getPort());
-					}
-				}
+					packetsReceived[seqnum] = new DatagramPacket(
+							packet.getData(), packet.getLength(),
+							packet.getAddress(), packet.getPort());
+				ACK(seqnum);
 			}
+			else if(seqnum <= (awaiting+MOD -1) % MOD && seqnum >=(awaiting+MOD-window)%MOD)
+				ACK(seqnum);
+			else if((awaiting + MOD -1) %MOD < 5 && seqnum >= (MOD-window+awaiting)%MOD)
+				ACK(seqnum);
+				
 			if (false)
 				break;
 		}

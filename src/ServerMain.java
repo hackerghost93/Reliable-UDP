@@ -77,15 +77,25 @@ public class ServerMain {
 		while(fileIndex < packets.size()) {
 			byte[] BUFFER = new byte[1];
 			DatagramPacket temp = new DatagramPacket(BUFFER, BUFFER.length);
+			for(int i = 0 ; i < MOD ;i++)
+			{
+				if(!(i >= waitACK && i < (waitACK + window) % (MOD)))
+					acked[i] = false ;
+			}
+			System.out.println("wait Ack " + waitACK);
+			SendPacket(fileIndex-window);
 			socket.receive(temp);
 			int num = Functions.getSeqnum(temp);
 			if (num == waitACK) {
 				acked[waitACK] = true;
 				System.out.println("Number Acked " + num);
 				for (int i = 0; i < window && acked[waitACK]; ++i) {
+					if(timers[waitACK]!=null)
+						if(timers[waitACK].isAlive())
+						{
+							timers[waitACK].interrupt();
+						}
 					acked[waitACK] = false;
-					timers[waitACK].interrupt();
-					timers[waitACK].join();
 					SendPacket(fileIndex);
 					timers[seqnum] = new Thread(new Timer(seqnum, fileIndex));
 					timers[seqnum].start();
@@ -98,11 +108,16 @@ public class ServerMain {
 				if(!acked[num]) {
 					acked[num] = true;
 					System.out.println("Number Acked " + num);
-					timers[num].interrupt();
-					timers[num].join();
+					if(timers[waitACK].isAlive())
+					{
+						timers[num].interrupt();
+					}
 				}
 			} else
+			{
 				System.out.println("Duplicate Ack " + num);
+			}
+			
 		}
 		socket.close();
 		// The last part when to send the EOF

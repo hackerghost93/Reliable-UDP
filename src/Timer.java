@@ -1,5 +1,4 @@
 import java.io.IOException;
-import java.net.DatagramPacket;
 
 public class Timer implements Runnable {
 	static final int timeout = 1000;
