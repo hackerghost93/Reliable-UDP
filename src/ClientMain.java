@@ -20,7 +20,7 @@ public class ClientMain {
 
 	public static int MOD;
 
-	public static void ACK(byte seqnum) throws IOException {
+	public static boolean ACK(byte seqnum) throws IOException {
 		byte[] BUFFER = new byte[1];
 		final ByteBuffer buf = ByteBuffer.allocate(1);
 		buf.put(seqnum);
@@ -29,19 +29,22 @@ public class ClientMain {
 		DatagramPacket packet = new DatagramPacket(BUFFER, BUFFER.length, ip,
 				ServerMain.port);
 		double num = Math.random();
-		// if(num > ServerMain.probability) {
-		socket.send(packet);
-		System.out.println("Sending ack for " + seqnum);
-		// }
+		 if(num > ServerMain.probability) {
+			socket.send(packet);
+			System.out.println("Sending ack for " + seqnum);
+			return true;
+		 }
+		 System.out.println("Drop Ack for " + seqnum);
+		 return false;
 	}
 
 	private static void IncSeq() {
 		++awaiting;
 		awaiting %= MOD;
 	}
-
 	public static void main(String[] args) throws IOException {
 		FileOutputStream output = new FileOutputStream("out.txt", false);
+		
 		socket = new DatagramSocket(port);
 		System.out.println("Enter the window size client");
 		Scanner input = new Scanner(System.in);
@@ -66,18 +69,20 @@ public class ClientMain {
 					byte[] wr = packetsReceived[awaiting].getData().clone();
 					packetsReceived[awaiting] = null;
 					System.out.println("sequ num = " + wr[0]);
-					Functions.WriteFile(wr);
-					ACK(awaiting);
-					IncSeq();
+					if(ACK(awaiting) || i > 0) {
+						Functions.WriteFile(wr);
+						IncSeq();
+					} else break;
 				}
 			} else if(seqnum > awaiting
 					&& seqnum < (awaiting + window) % (MOD)) {
-				if (packetsReceived[seqnum] == null) {
-					packetsReceived[seqnum] = new DatagramPacket(
-							packet.getData(), packet.getLength(),
-							packet.getAddress(), packet.getPort());
+				if(ACK(seqnum)) {
+					if (packetsReceived[seqnum] == null) {
+						packetsReceived[seqnum] = new DatagramPacket(
+								packet.getData(), packet.getLength(),
+								packet.getAddress(), packet.getPort());
+					}
 				}
-				ACK(seqnum);
 			}
 			if (false)
 				break;
