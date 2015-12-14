@@ -58,6 +58,13 @@ public class ServerMain {
 		++seqnum;
 		seqnum %= MOD;
 	}
+	
+	public static boolean lastCheck() {
+		for(int i = 0 ; i < timers.length ; ++i)
+			if(timers[i].isAlive())
+				return false;
+		return true;
+	}
 
 	public static void main(String[] args) throws IOException,
 			InterruptedException {
@@ -124,8 +131,15 @@ public class ServerMain {
 			}
 			
 		}
-		socket.close();
 		// The last part when to send the EOF
+		while(true) {
+			if(lastCheck()) {
+				// send EOF
+				break; // or wait for its ack
+			}
+			Thread.sleep(1000);
+		}
+		socket.close();
 	}
 
 }
