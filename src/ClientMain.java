@@ -3,9 +3,10 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.net.SocketTimeoutException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
-import java.util.Scanner;
+import java.util.zip.CRC32;
 
 public class ClientMain {
 
@@ -43,6 +44,15 @@ public class ClientMain {
 		++awaiting;
 		awaiting %= MOD;
 	}
+	
+	private static String toBinary(long t) {
+		StringBuilder ret = new StringBuilder("");
+		while(t != 0) {
+			ret.append(t%2);
+			t >>= 1L;
+		}
+		return ret.reverse().toString();
+	}
 
 	public static void main(String[] args) throws IOException {
 		System.out.println("\t\tWelcome to Client\n\n");
@@ -59,9 +69,18 @@ public class ClientMain {
 			System.out.println("awaiting receive " + awaiting);
 			byte[] buf = new byte[512];
 			DatagramPacket packet = new DatagramPacket(buf, buf.length);
-			socket.receive(packet);
+			socket.setSoTimeout(20000);
+			try {
+				socket.receive(packet);
+			} catch(SocketTimeoutException e) {
+				break;
+			}
 			byte seqnum = Functions.getSeqnum(packet);
-			System.out.println("received " + seqnum);
+			CRC32 checksum = new CRC32();
+			checksum.update(packet.getData());
+			System.out.println("received " + seqnum + " checksum in decimal = "
+				+ checksum.getValue() + " checksum in binary = " 
+									  + toBinary(checksum.getValue()));
 			if(seqnum == awaiting) {
 				packetsReceived[awaiting] = new DatagramPacket(
 						packet.getData(), packet.getLength(),
@@ -73,7 +92,6 @@ public class ClientMain {
 					packetsReceived[awaiting] = null;
 					System.out.println("sequ num = " + wr[0]);
 					Functions.WriteFile(wr);
-					//ACK(awaiting);
 					IncSeq();
 				}
 			} else if(seqnum > awaiting
@@ -87,11 +105,10 @@ public class ClientMain {
 				ACK(seqnum);
 			else if((awaiting + MOD -1) %MOD < 5 && seqnum >= (MOD-window+awaiting)%MOD)
 				ACK(seqnum);
-				
-			if (false)
-				break;
 		}
+		System.out.println("\n\n\t\t File Received Successfully");
 		socket.close();
+		System.exit(1);
 	}
 
 }

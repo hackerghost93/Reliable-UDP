@@ -1,6 +1,5 @@
 package GoBackN;
 
-
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
@@ -9,42 +8,42 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Scanner;
+import java.util.Arrays;
 
 public class Server {
-	public static int port = 7672;
+	public static int serverPort = 7672;
+	public static int clientPort;
 	public static int window;
 	public static DatagramSocket socket;
 	public static boolean acked[];
-	private static Thread mytimer = null;
 	public static int pointerNext;
 	static ArrayList<DatagramPacket> packets;
 	static byte[] data;
-	private static byte waitACK = 0;
 	private static int fileIndex = 0;
-	private static int currentFileIndex = 0 ;
-	
-	public final static double probability = 0.2 ;
-	
-	public static byte MOD ;
-	
+	private static int last_rec;
+
+	public static double probability;
+
+	public static InetAddress ip;
+
+	public static byte MOD;
+
 	public static byte[] ReadFile() throws IOException {
 		byte[] data;
 		Path path = Paths.get("output.txt");
 		data = Files.readAllBytes(path);
 		return data;
 	}
-	
+
 	public static synchronized byte getSeqnum(DatagramPacket packet) {
 		return packet.getData()[0];
 	}
-	
+
 	public static void CreatePackets() throws IOException {
 		packets = new ArrayList<DatagramPacket>();
 		byte[] data = ReadFile();
-		InetAddress ip = InetAddress.getByName("127.0.0.1");
 		byte sequ = 0;
-		for(int i = 0; i < data.length;) {
+		for (int i = 0; i < data.length;) {
 			byte[] buffer = new byte[512];
 			buffer[0] = sequ;
 			sequ++;
@@ -53,69 +52,61 @@ public class Server {
 			for (; sz < 512 && i < data.length; ++i, sz++)
 				buffer[sz] = data[i];
 			packets.add(new DatagramPacket(buffer, buffer.length, ip,
-					Client.port));
+					clientPort));
 		}
 	}
-	
+
 	public synchronized static void SendPacket(int physicalNumber)
 			throws IOException {
 		double num = Math.random();
-		if(num > probability) {
+		if (num > probability) {
 			socket.send(packets.get(physicalNumber));
 			System.out.println("send packet "
 					+ packets.get(physicalNumber).getData()[0]);
+		} else System.out.println("drop packet " + 
+					packets.get(physicalNumber).getData()[0]);
+	}
+	
+	private static int in_range(int rec) {
+		for(int i = last_rec, j = 0 ; j < window ; ++j) {
+			if(i == rec) return j+1;
+			++i;
+			i %= MOD;
 		}
+		return -1;
 	}
-	
-	private static void IncACK() {
-		++waitACK;
-		waitACK %= MOD;
-	}
-	
-	
-	public static void main(String[] args) throws IOException {
-		System.out.println("Server Window size");
-		Scanner input = new Scanner(System.in);
-		window = input.nextByte();
-		input.close();
-		MOD = (byte) (3*window) ;
+
+	public static void main(String[] args) throws IOException, InterruptedException {
+		System.out.println("\t\tWelcome to Server\n\n");
+		if (!Functions.initServer()) {
+			System.out.println("\n\n\t looks like your config file is "
+					+ "not formated as we expect");
+			return;
+		}
+		MOD = (byte) (3 * window);
 		CreatePackets();
-		socket = new DatagramSocket(port);
-		acked = new boolean[MOD];
-		
-		for(fileIndex = 0; fileIndex < window && fileIndex < packets.size();
-				++fileIndex) {
+		socket = new DatagramSocket(serverPort);
+		for (fileIndex = 0; fileIndex < window && fileIndex < packets.size(); ++fileIndex) {
 			SendPacket(fileIndex);
 		}
-		mytimer = new Thread(new Timer(waitACK,currentFileIndex));
-		mytimer.start();
+		fileIndex = 0;
+		last_rec = 0;
+		int t = 0, o = -1;
+		acked = new boolean[MOD];
 		byte[] BUFFER = new byte[15];
-		DatagramPacket packet = new DatagramPacket(BUFFER,BUFFER.length);
-		byte num ;
-		while(currentFileIndex < packets.size())
-		{
-			System.out.println("waiting ACK of " + waitACK);
+		DatagramPacket packet = new DatagramPacket(BUFFER, BUFFER.length);
+		byte num;
+		while (fileIndex < packets.size()) {
 			socket.receive(packet);
 			num = getSeqnum(packet);
-			System.out.println("ACK for "+ num+" awaiting " + waitACK);
-			if(true)
-			{
-				mytimer.interrupt();
-				while(waitACK != num)
-				{
-					IncACK();
-					currentFileIndex++;
-					SendPacket(fileIndex++);
-				}
-				mytimer = new Thread(new Timer(waitACK,currentFileIndex));
-				mytimer.start();
-			}
+			System.out.println("Received ACK for " + num);
+			if(num < o) ++t;// add 1 to cycles
+			o = num; // new offset
+			for(int i = t*MOD + o + 1, j = 0 ; i < packets.size() && 
+								j < window ; ++j, ++i)
+				SendPacket(i);
 		}
-		InetAddress ip = InetAddress.getByName("127.0.0.1");
-		DatagramPacket p = new DatagramPacket(null,0,ip,Client.port);
-		socket.send(p);
-		
-		socket.close();	
+		socket.close();
 	}
 
 }
